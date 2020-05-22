@@ -135,7 +135,7 @@ char * find_largest_file_fd(int dir_fd, int explore_subdirectories_recursively,
 			int file_fd;
 			__off_t file_size;
 
-			file_fd = openat(dir_fd, ep->d_name, O_PATH);
+			file_fd = openat(dir_fd, ep->d_name, O_PATH); // O_PATH è ok con fstat()
 
 			file_size = get_fd_size(file_fd);
 

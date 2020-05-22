@@ -64,7 +64,7 @@ __off_t get_fd_size(int fd) {
 
     // printf("File size: %lld bytes\n", (long long) sb.st_size);
 
-	printf("sizeof(__off_t) = %lu\n", sizeof(__off_t));
+	//printf("sizeof(__off_t) = %lu\n", sizeof(__off_t));
 
     return sb.st_size;
 }
@@ -137,6 +137,8 @@ char * find_largest_file_fd(int dir_fd, int explore_subdirectories_recursively,
 
 			file_size = get_fd_size(file_fd);
 
+			printf("%s size: %ld\n", ep->d_name, file_size);
+
 			if (file_size > max_len) {
 				strcpy(largest_file_name, ep->d_name);
 				max_len = file_size;
@@ -172,6 +174,7 @@ char * find_largest_file(char * directory_name, int explore_subdirectories_recur
 	dir_fd = open(directory_name, O_RDONLY);
 	if (dir_fd == -1) {
 		perror("open");
+		printf("cannot open directory: %s\n", directory_name);
 		exit(EXIT_FAILURE);
 	}
 

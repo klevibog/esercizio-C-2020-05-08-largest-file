@@ -46,7 +46,7 @@ provare a fare girare il programma a partire da queste directory:
 /
  */
 
-
+#define DEBUG_MSG
 
 
 // restituisce la dimensione del file, -1 in caso di errore
@@ -81,15 +81,16 @@ char * find_largest_file_fd(int dir_fd, int explore_subdirectories_recursively,
 
 	if (dir_stream_ptr == NULL) {
 		//printf("cannot open directory %s! bye", directory_name);
-
+		*largest_file_size = -1;
 		return NULL;
 	}
 
 	char * largest_file_name = malloc(256);
-	int max_len = -1;
+	int largest_file_len = -1;
 
 	while ((ep = readdir(dir_stream_ptr)) != NULL) {
 
+#ifdef DEBUG_MSG
 		printf("%-10s ", (ep->d_type == DT_REG) ?  "regular" :
 		                                    (ep->d_type == DT_DIR) ?  "directory" :
 		                                    (ep->d_type == DT_FIFO) ? "FIFO" :
@@ -99,6 +100,7 @@ char * find_largest_file_fd(int dir_fd, int explore_subdirectories_recursively,
 		                                    (ep->d_type == DT_CHR) ?  "char dev" : "???");
 
 		printf("%s \n", ep->d_name);
+#endif
 
 		if (!strcmp(".", ep->d_name) || !strcmp("..", ep->d_name)) {
 			continue;
@@ -106,27 +108,27 @@ char * find_largest_file_fd(int dir_fd, int explore_subdirectories_recursively,
 
 		// come trovo il file size? posso usare stat (man 2 stat)
 
-		if (explore_subdirectories_recursively && ep->d_type == DT_DIR) {
+		if (explore_subdirectories_recursively && ep->d_type == DT_DIR) { // directory
 
 			int subdir_fd;
-			char * sub_result;
-			int sub_result_max_len;
+			char * sub_largest_file_name;
+			int sub_largest_file_len;
 
-			subdir_fd = openat(dir_fd, ep->d_name, O_RDONLY);
+			subdir_fd = openat(dir_fd, ep->d_name, O_RDONLY); // file descriptor della sub-directory
 
 			if (subdir_fd == -1) {
 				perror("openat");
 				continue;
 			}
 
-			sub_result = find_largest_file_fd(subdir_fd, explore_subdirectories_recursively, &sub_result_max_len);
+			sub_largest_file_name = find_largest_file_fd(subdir_fd, explore_subdirectories_recursively, &sub_largest_file_len);
 
-			if (sub_result != NULL && sub_result_max_len > max_len) {
-				strcpy(largest_file_name, sub_result);
-				max_len = sub_result_max_len;
+			if (sub_largest_file_name != NULL && sub_largest_file_len > largest_file_len) {
+				strcpy(largest_file_name, sub_largest_file_name);
+				largest_file_len = sub_largest_file_len;
 			}
 
-			free(sub_result);
+			free(sub_largest_file_name);
 
 		} else if (ep->d_type == DT_REG) { // file regolare
 
@@ -137,11 +139,13 @@ char * find_largest_file_fd(int dir_fd, int explore_subdirectories_recursively,
 
 			file_size = get_fd_size(file_fd);
 
+#ifdef DEBUG_MSG
 			printf("%s size: %ld\n", ep->d_name, file_size);
+#endif
 
-			if (file_size > max_len) {
+			if (file_size > largest_file_len) {
 				strcpy(largest_file_name, ep->d_name);
-				max_len = file_size;
+				largest_file_len = file_size;
 			}
 
 			close(file_fd);
@@ -155,13 +159,13 @@ char * find_largest_file_fd(int dir_fd, int explore_subdirectories_recursively,
 
 	closedir(dir_stream_ptr);
 
-	if (max_len == -1) {
+	if (largest_file_len == -1) {
 		*largest_file_size = -1;
 		free(largest_file_name);
 		return NULL;
 	} else {
 
-		*largest_file_size = max_len;
+		*largest_file_size = largest_file_len;
 		return largest_file_name;
 	}
 }
